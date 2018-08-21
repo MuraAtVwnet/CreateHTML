@@ -2,15 +2,69 @@
 # IANA PortNumbers to HTML
 ################################################################
 
+# URI
+$URI = "https://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xml"
+
 # 出力ファイル
-$OutputFile = Join-Path $PSScriptRoot "TCPUDPPortNummbers.html"
+$OutputFiles = @()
+$OutputFiles += Join-Path $PSScriptRoot "WellKnownPortNumbers.html"
+$OutputFiles += Join-Path $PSScriptRoot "RegisteredPortNumbers_01.html"
+$OutputFiles += Join-Path $PSScriptRoot "RegisteredPortNumbers_02.html"
+$OutputFiles += Join-Path $PSScriptRoot "RegisteredPortNumbers_03.html"
+$OutputFiles += Join-Path $PSScriptRoot "RegisteredPortNumbers_04.html"
+$OutputFiles += Join-Path $PSScriptRoot "RegisteredPortNumbers_05.html"
+$OutputFiles += Join-Path $PSScriptRoot "RegisteredPortNumbers_06.html"
+
+# 出力範囲
+[array]$PortRangStarts = `
+	0,
+	1024,
+	2030,
+	3034,
+	4059,
+	6146,
+	10500,
+	49152
+
+[array]$PortRangEnds = `
+	($PortRangStarts[1] -1),
+	($PortRangStarts[2] -1),
+	($PortRangStarts[3] -1),
+	($PortRangStarts[4] -1),
+	($PortRangStarts[5] -1),
+	($PortRangStarts[6] -1),
+	($PortRangStarts[7] -1)
+
+# ポートレンジ
+$PortRanges = @()
+$PortRanges += [string]$PortRangStarts[0] + " - " + [string]$PortRangEnds[0]
+$PortRanges += [string]$PortRangStarts[1] + " - " + [string]$PortRangEnds[1]
+$PortRanges += [string]$PortRangStarts[2] + " - " + [string]$PortRangEnds[2]
+$PortRanges += [string]$PortRangStarts[3] + " - " + [string]$PortRangEnds[3]
+$PortRanges += [string]$PortRangStarts[4] + " - " + [string]$PortRangEnds[4]
+$PortRanges += [string]$PortRangStarts[5] + " - " + [string]$PortRangEnds[5]
+$PortRanges += [string]$PortRangStarts[6] + " - " + [string]$PortRangEnds[6]
+
+# タイトル
+$Titols = @()
+$Titols += "Well Known Port Numbers 自動更新版( " + $PortRanges[0] + " )"
+$Titols += "Registered Port Numbers 自動更新版( " + $PortRanges[1] + " )"
+$Titols += "Registered Port Numbers 自動更新版( " + $PortRanges[2] + " )"
+$Titols += "Registered Port Numbers 自動更新版( " + $PortRanges[3] + " )"
+$Titols += "Registered Port Numbers 自動更新版( " + $PortRanges[4] + " )"
+$Titols += "Registered Port Numbers 自動更新版( " + $PortRanges[5] + " )"
+$Titols += "Registered Port Numbers 自動更新版( " + $PortRanges[6] + " )"
+
 
 # ヘッダ
-$HeaderHere = @'
+$Header01Here = @'
 <html xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
-
 <head>
-<title>TCP/UDP ポート番号(自動更新版)</title>
+'@
+
+# <title>TCP/UDP ポート番号(自動更新版)</title>
+
+$Header02Here = @'
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta name="GENERATOR" content="Microsoft FrontPage 12.0">
 <meta name="ProgId" content="FrontPage.Editor.Document">
@@ -34,7 +88,11 @@ $HeaderHere = @'
 
 <p><a href="http://www.vwnet.jp" target="_self">Home</a> &gt;
 <a href="../../etc.asp" target="_self">Windows にまつわる e.t.c</a>.</p>
-<h1>TCP/UDP ポート番号(自動更新版)</h1>
+'@
+
+# <h1>TCP/UDP ポート番号(自動更新版)</h1>
+
+$Header03Here = @'
 <hr>
 <!-- MicrosoftTranslatorWidget start -->
 <div id='MicrosoftTranslatorWidget' class='Dark' style='color:white;background-color:#555555'></div><script type='text/javascript'>setTimeout(function(){{var s=document.createElement('script');s.type='text/javascript';s.charset='UTF-8';s.src=((location && location.href && location.href.indexOf('https') == 0)?'https://ssl.microsofttranslator.com':'http://www.microsofttranslator.com')+'/ajax/v3/WidgetV3.ashx?siteData=ueOIGRSKkd965FeEGM5JtQ**&ctf=False&ui=true&settings=Manual&from=ja';var p=document.getElementsByTagName('head')[0]||document.documentElement;p.insertBefore(s,p.firstChild); }},0);</script>
@@ -42,7 +100,7 @@ $HeaderHere = @'
 '@
 
 # フッダ
-$FuterHere = @'
+$FooterHere = @'
 <p class="style1">&nbsp;</p>
 <p class="style1">&nbsp;</p>
 <p>
@@ -70,7 +128,7 @@ urchinTracker();
 
 # $TableHead = '<table cellpadding="5" class="auto-style1" cellspacing="1">'
 $TableHead = '<table cellpadding="5" class="auto-style1">'
-$TableFuter = '</table>'
+$TableFooter = '</table>'
 
 $Comment1 = '<p class="style1">月に一度 IANA の DB からデータを取得し、自動生成した TCP/UDP ポート番号一覧です<br>(データ取得日時 : '
 $Comment2 = ' / JST)</p>'
@@ -83,42 +141,42 @@ $LogName = "GenPortNumberList"
 # ログ出力
 ##########################################################################
 function Log(
-            $LogString
-            ){
+			$LogString
+			){
 
-    $Now = Get-Date
+	$Now = Get-Date
 
-    # Log 出力文字列に時刻を付加(YYYY/MM/DD HH:MM:SS.MMM $LogString)
-    $Log = $Now.ToString("yyyy/MM/dd HH:mm:ss.fff") + " "
-    $Log += $LogString
+	# Log 出力文字列に時刻を付加(YYYY/MM/DD HH:MM:SS.MMM $LogString)
+	$Log = $Now.ToString("yyyy/MM/dd HH:mm:ss.fff") + " "
+	$Log += $LogString
 
-    # ログファイル名が設定されていなかったらデフォルトのログファイル名をつける
-    if( $LogName -eq $null ){
-        $LogName = "LOG"
-    }
+	# ログファイル名が設定されていなかったらデフォルトのログファイル名をつける
+	if( $LogName -eq $null ){
+		$LogName = "LOG"
+	}
 
-    # ログファイル名(XXXX_YYYY-MM-DD.log)
-    $LogFile = $LogName + "_" +$Now.ToString("yyyy-MM-dd") + ".log"
+	# ログファイル名(XXXX_YYYY-MM-DD.log)
+	$LogFile = $LogName + "_" +$Now.ToString("yyyy-MM-dd") + ".log"
 
-    # ログフォルダーがなかったら作成
-    if( -not (Test-Path $LogPath) ) {
-        New-Item $LogPath -Type Directory
-    }
+	# ログフォルダーがなかったら作成
+	if( -not (Test-Path $LogPath) ) {
+		New-Item $LogPath -Type Directory
+	}
 
-    # ログファイル名
-    $LogFileName = Join-Path $LogPath $LogFile
+	# ログファイル名
+	$LogFileName = Join-Path $LogPath $LogFile
 
-    # ログ出力
-    Write-Output $Log | Out-File -FilePath $LogFileName -Encoding Default -append
+	# ログ出力
+	Write-Output $Log | Out-File -FilePath $LogFileName -Encoding Default -append
 }
 
 ####################################
 # ヒア文字列を配列にする
 ####################################
 function HereString2StringArray( $HereString ){
-    $Temp = $HereString.Replace("`r","")
-    $StringArray = $Temp.Split("`n")
-    return $StringArray
+	$Temp = $HereString.Replace("`r","")
+	$StringArray = $Temp.Split("`n")
+	return $StringArray
 }
 
 ####################################
@@ -159,32 +217,74 @@ function Object2Tabele([array]$Objects){
 ####################################
 Log "=-=-=-=-=-=-= START =-=-=-=-=-=-="
 Log "Download start XML from IANA"
-[XML]$PortXML = (Invoke-WebRequest https://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xml).Content
+$ReceiveData = Invoke-WebRequest $URI -UseBasicParsing
+[XML]$PortXML = $ReceiveData.Content
 Log "Download end"
 
 Log "Convert to Object form XML"
-[array]$ALLPorts =  $PortXML.registry.record
+[array]$ALLPorts =	$PortXML.registry.record
 [array]$ActivePorts = $ALLPorts | ? number -ne $null
 
 Log "Make base HTML"
-$Header = HereString2StringArray $HeaderHere
-$Futer = HereString2StringArray $FuterHere
+$Header01 = HereString2StringArray $Header01Here
+$Header02 = HereString2StringArray $Header02Here
+$Header03 = HereString2StringArray $Header03Here
+$Footer = HereString2StringArray $FooterHere
+
+$GetDate = (Get-Date).DateTime
+
+# 出力単位
+$BlockIndex = 0
+$NextPortNumber = $PortRangStarts[$BlockIndex + 1]
 
 $HTML = @()
+$HTML += $Header01
+$HTML += '<title>' + $Titols[$BlockIndex] + '</title>'
+$HTML += $Header02
+$HTML += '<h1>' + $Titols[$BlockIndex] + '</h1>'
+$HTML += $Header03
+$HTML += $Comment1 + $GetDate + $Comment2
 
-$HTML += $Header
-$HTML += $Comment1 + (Get-Date).DateTime + $Comment2
+$Ports = @()
+$Max = $ActivePorts.Count
+for($i = 0;$i -lt $Max; $i++){
+	$PortNumber = $ActivePorts[$i].number -as [int]
+	if( $PortNumber -eq $NextPortNumber ){
+		# コンテンツ出力
+		$HTML += $TableHead
+		$Table = Object2Tabele $Ports
+		$HTML += $Table
+		$HTML += $TableFooter
+		$HTML += $Footer
+		$OutputFile = $OutputFiles[$BlockIndex]
+		Log "Output HTML file : $OutputFile"
+		Set-Content -Value $HTML -Path $OutputFile -Encoding UTF8
 
-Log "Make Body"
+		# 次のコンテンツ セット
+		$BlockIndex++
+		$Ports = @()
+		$NextPortNumber = $PortRangStarts[$BlockIndex + 1]
+		$HTML = @()
+		$HTML += $Header01
+		$HTML += '<title>' + $Titols[$BlockIndex] + '</title>'
+		$HTML += $Header02
+		$HTML += '<h1>' + $Titols[$BlockIndex] + '</h1>'
+		$HTML += $Header03
+		$HTML += $Comment1 + $GetDate + $Comment2
+	}
+
+	$Ports += $ActivePorts[$i]
+
+}
+
+# 最後のコンテンツ出力
 $HTML += $TableHead
-$Table = Object2Tabele $ActivePorts
+$Table = Object2Tabele $Ports
 $HTML += $Table
-$HTML += $TableFuter
-
-$HTML += $Futer
-Log "Finish HTML"
-
-Log "Output HTML file"
+$HTML += $TableFooter
+$HTML += $Footer
+$OutputFile = $OutputFiles[$BlockIndex]
+Log "Output HTML file : $OutputFile"
 Set-Content -Value $HTML -Path $OutputFile -Encoding UTF8
 
 Log "=-=-=-=-=-=-= END =-=-=-=-=-=-="
